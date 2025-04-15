@@ -22,7 +22,10 @@ body {
     box-shadow: 0 8px 16px rgba(0,0,0,0.5);
     transition: all 0.3s ease;
   }
-  
+  #endScreen {
+    display: none;
+ 
+  }
   #menu h1, #endScreen h2 {
     margin-bottom: 20px;
     font-size: 2rem;
