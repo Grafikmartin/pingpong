@@ -1,0 +1,74 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #1e1e1e, #2e2e2e);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  #menu, #endScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center; /* 👈 das zentriert den Text */
+    background-color: #222;
+    border-radius: 20px;
+    padding: 30px 40px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+  }
+  
+  #menu h1, #endScreen h2 {
+    margin-bottom: 20px;
+    font-size: 2rem;
+  }
+  
+  #menu label, #menu input, #menu select {
+    margin: 8px 0;
+    font-size: 1rem;
+    width: 100%;
+    max-width: 220px;
+  }
+  
+  #menu input, #menu select {
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    background: #333;
+    color: #fff;
+  }
+  
+  #menu button, #endScreen button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color:chocolate;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  #menu button:hover, #endScreen button:hover {
+    background-color: #16a085;
+  }
+  
+  #gameCanvas {
+    display: none;
+    background-color: #000;
+    border: 2px solid #fff;
+    border-radius: 10px;
+  }
+  
+  #highscoreDisplay {
+    margin-top: 15px;
+    font-size: 1.1rem;
+  }
+  
