@@ -245,10 +245,10 @@ function startGame() {
     gameStatusDiv.style.zIndex = "10";
     
     gameStatusDiv.innerHTML = `
-      <div class="lives-counter" style="background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;">
+      <div class="lives-counter" style="background-color: rgba(0,0,0,1); padding: 5px 10px; border-radius: 4px;">
         Leben: <span id="livesValue">0 von 3</span>
       </div>
-      <div class="timer" style="background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;">
+      <div class="timer" style="background-color: rgba(0,0,0,0.0); padding: 5px 10px; border-radius: 4px;">
         Zeit: <span id="timeValue">00:00</span>
       </div>
     `;
@@ -259,7 +259,7 @@ function startGame() {
     speedIndicator.style.position = "absolute";
     speedIndicator.style.bottom = "10px";
     speedIndicator.style.right = "20px";
-    speedIndicator.style.backgroundColor = "rgba(0,0,0,0.5)";
+    speedIndicator.style.backgroundColor = "rgba(0,0,0,0.0)";
     speedIndicator.style.padding = "5px 10px";
     speedIndicator.style.borderRadius = "4px";
     speedIndicator.style.fontSize = "14px";
