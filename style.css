@@ -221,3 +221,87 @@ body {
   max-width: 220px;
   margin: 10px auto;
 }
+/* Spielmodus-Styling */
+.game-modes-wrapper {
+  width: 100%;
+  max-width: 220px;
+  margin: 15px 0;
+  text-align: center;
+}
+
+.game-modes-wrapper label {
+  display: block;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px 0;
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 0.9rem;
+}
+
+.mode-btn:hover {
+  background-color: #666;
+}
+
+.mode-btn.active {
+  background-color: chocolate;
+}
+
+#modeDescription {
+  font-size: 0.8rem;
+  margin: 5px 0 0 0;
+  font-style: italic;
+  color: #aaa;
+}
+
+/* Status-Anzeigen im Spiel */
+.game-status {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 16px;
+  color: white;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.lives-counter {
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.timer {
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.speed-indicator {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: white;
+}

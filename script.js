@@ -1,6 +1,6 @@
 /******************************************************
  * script.js – Mit Pause, rotem Streifen an Austrittsstelle,
- * Wahl links/rechts, Highscore, Touch & Keyboard, usw.
+ * Wahl links/rechts, Highscore, Touch & Keyboard, Spielmodi
  ******************************************************/
 
 // DOM-Elemente
@@ -18,6 +18,9 @@ const highscoreDisplay = document.getElementById('highscoreValue');
 const pingSound = document.getElementById('pingSound');
 const sideChoiceSelect = document.getElementById('sideChoice');
 const pauseBtn = document.getElementById('pauseBtn');
+const standardModeBtn = document.getElementById('standardMode');
+const survivalModeBtn = document.getElementById('survivalMode');
+const modeDescription = document.getElementById('modeDescription');
 
 // Canvas-Kontext
 const ctx = gameCanvas.getContext('2d');
@@ -43,14 +46,24 @@ let soundOn;
 let userSide; // 'left' oder 'right'
 let gameRunning = false;
 let isPaused = false;
+let gameMode = "standard"; // "standard" oder "survival"
 
 // Zeit / Geschwindigkeit
 let gameStartTime = 0;
 let lastSpeedIncreaseTime = 0;
+let speedMultiplier = 1.0;
+
+// Survival-Modus spezifisch
+let lives = 3;
+let gameTimer;
+let gameStatusDiv;
+let speedIndicator;
 
 // Highscore
 let storedHighscore = parseInt(localStorage.getItem('pongHighscore'), 10) || 0;
-highscoreDisplay.textContent = storedHighscore;
+if (highscoreDisplay) {
+  highscoreDisplay.textContent = storedHighscore;
+}
 
 // Paddles und Ball
 let userPaddle, aiPaddle, ball;
@@ -83,6 +96,39 @@ pauseBtn.addEventListener('click', () => {
   isPaused = !isPaused;
   pauseBtn.textContent = isPaused ? '▶ Weiter' : '⏸ Pause';
 });
+
+// Spielmodus wechseln
+if (standardModeBtn) {
+  standardModeBtn.addEventListener('click', () => {
+    setGameMode("standard");
+  });
+}
+
+if (survivalModeBtn) {
+  survivalModeBtn.addEventListener('click', () => {
+    setGameMode("survival");
+  });
+}
+
+// Spielmodus setzen
+function setGameMode(mode) {
+  gameMode = mode;
+  
+  // UI aktualisieren
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  
+  if (mode === "standard") {
+    standardModeBtn.classList.add("active");
+    modeDescription.textContent = "Standard: Gewinne durch Erreichen der Punktegrenze.";
+    maxPointsInput.disabled = false;
+  } else {
+    survivalModeBtn.classList.add("active");
+    modeDescription.textContent = "Survival: Max. 3 Tore kassieren. Ball wird alle 10 Sek. schneller.";
+    maxPointsInput.disabled = true;
+  }
+}
 
 /******************************************************
  * startGame
@@ -160,6 +206,32 @@ function startGame() {
   // Zeit
   gameStartTime = performance.now();
   lastSpeedIncreaseTime = gameStartTime;
+  
+  // Survival-Modus spezifisch
+  if (gameMode === "survival") {
+    lives = 3;
+    speedMultiplier = 1.0;
+    
+    // Status-Anzeigen erstellen
+    gameStatusDiv = document.createElement("div");
+    gameStatusDiv.className = "game-status";
+    gameStatusDiv.innerHTML = `
+      <div class="lives-counter">Leben: <span id="livesValue">0 von 3</span></div>
+      <div class="timer">Zeit: <span id="timeValue">00:00</span></div>
+    `;
+    document.getElementById("canvasContainer").appendChild(gameStatusDiv);
+    
+    speedIndicator = document.createElement("div");
+    speedIndicator.className = "speed-indicator";
+    speedIndicator.innerHTML = `Geschwindigkeit: <span id="speedValue">1.0x</span>`;
+    document.getElementById("canvasContainer").appendChild(speedIndicator);
+    
+    // Timer starten
+    gameTimer = setInterval(updateTimer, 100);
+    
+    // Anzeigen aktualisieren
+    updateLifeCounter();
+  }
 
   // Steuerung
   activateKeyboardControls();
@@ -168,6 +240,49 @@ function startGame() {
   // Los geht's
   gameRunning = true;
   requestAnimationFrame(gameLoop);
+}
+
+// Timer für den Survival-Modus aktualisieren
+function updateTimer() {
+  if (gameMode === "survival" && gameRunning && !isPaused) {
+    const now = performance.now();
+    const elapsedSeconds = Math.floor((now - gameStartTime) / 1000);
+    
+    // Formatieren als MM:SS
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+    
+    const timeElement = document.getElementById("timeValue");
+    if (timeElement) {
+      timeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Alle 10 Sekunden Ball beschleunigen
+    if (now - lastSpeedIncreaseTime >= 10000) {
+      speedMultiplier += 0.1;
+      lastSpeedIncreaseTime = now;
+      
+      const speedElement = document.getElementById("speedValue");
+      if (speedElement) {
+        speedElement.textContent = speedMultiplier.toFixed(1) + "x";
+      }
+      
+      // Ballgeschwindigkeit erhöhen
+      const speedDirection = ball.dx > 0 ? 1 : -1;
+      ball.dx = speedDirection * ballSpeed * speedMultiplier;
+      
+      const dyDirection = ball.dy > 0 ? 1 : -1;
+      ball.dy = dyDirection * ballSpeed * speedMultiplier;
+    }
+  }
+}
+
+// Leben-Anzeige aktualisieren
+function updateLifeCounter() {
+  const livesElement = document.getElementById("livesValue");
+  if (livesElement) {
+    livesElement.textContent = `${3 - lives} von 3`;
+  }
 }
 
 /******************************************************
@@ -243,14 +358,16 @@ function gameLoop(timestamp) {
  * update
  ******************************************************/
 function update(timestamp) {
-  // Ballbeschleunigung alle 60 Sek.
-  const elapsedSec = (timestamp - lastSpeedIncreaseTime) / 1000;
-  if (elapsedSec >= 60) {
-    ball.dx *= 1.2;
-    ball.dy *= 1.2;
-    lastSpeedIncreaseTime = timestamp;
+  // Ballbeschleunigung im Standard-Modus alle 60 Sek.
+  if (gameMode === "standard") {
+    const elapsedSec = (timestamp - lastSpeedIncreaseTime) / 1000;
+    if (elapsedSec >= 60) {
+      ball.dx *= 1.2;
+      ball.dy *= 1.2;
+      lastSpeedIncreaseTime = timestamp;
+    }
   }
-
+  
   // User-Paddle
   userPaddle.y += userPaddle.dy;
   if (userPaddle.y < 0) userPaddle.y = 0;
@@ -258,20 +375,27 @@ function update(timestamp) {
     userPaddle.y = HEIGHT - paddleHeight;
   }
 
-  // AI-Paddle
+  // AI-Paddle - im Survival-Modus spielt AI fast perfekt
   let computerSpeed = paddleSpeed;
-  if (difficulty === 'easy') {
-    computerSpeed = paddleSpeed - 2;
-  } else if (difficulty === 'hard') {
-    computerSpeed = paddleSpeed + 2;
+  let errorFactor = 0.7;
+
+  if (gameMode === "survival") {
+    computerSpeed = paddleSpeed + 2;  // Schnellere AI im Survival-Modus
+    errorFactor = 0.9;                // Weniger Fehler 
+  } else {
+    if (difficulty === 'easy') {
+      computerSpeed = paddleSpeed - 2;
+      errorFactor = 0.5;
+    } else if (difficulty === 'hard') {
+      computerSpeed = paddleSpeed + 2;
+      errorFactor = 0.8;
+    }
   }
 
-  // Einfacher KI-Algorithmus
-  if (ball.y < aiPaddle.y) {
-    aiPaddle.y -= computerSpeed * 0.7;
-  } else if (ball.y > aiPaddle.y + aiPaddle.height) {
-    aiPaddle.y += computerSpeed * 0.7;
-  }
+  // KI-Algorithmus
+  const aiTarget = ball.y + (ball.height / 2) - (aiPaddle.height / 2);
+  aiPaddle.y += (aiTarget - aiPaddle.y) * errorFactor;
+  
   if (aiPaddle.y < 0) aiPaddle.y = 0;
   if (aiPaddle.y + paddleHeight > HEIGHT) {
     aiPaddle.y = HEIGHT - paddleHeight;
@@ -313,16 +437,32 @@ function update(timestamp) {
 
   // Ball links raus
   if (ball.x < 0) {
-    if (userSide === 'left') {
-      // User hat verpasst -> AI Punkt
-      aiScore++;
-      // Roter Streifen genau dort, wo der Ball rausging
-      flashX = 0;
+    if (gameMode === "survival" && userSide === 'left') {
+      // In Survival: Leben verlieren wenn der Ball hinter dem Spieler rausgeht
+      lives--;
+      updateLifeCounter();
+      
+      if (lives <= 0) {
+        const now = performance.now();
+        const survivedTime = Math.floor((now - gameStartTime) / 1000);
+        const minutes = Math.floor(survivedTime / 60);
+        const seconds = survivedTime % 60;
+        
+        endGame(false, `Überlebt: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        return;
+      }
     } else {
-      // AI ist links -> User Punkt
-      userScore++;
-      flashX = 0;
+      // Standard-Modus Punktezählung
+      if (userSide === 'left') {
+        // User hat verpasst -> AI Punkt
+        aiScore++;
+      } else {
+        // AI ist links -> User Punkt
+        userScore++;
+      }
     }
+    // Roter Streifen genau dort, wo der Ball rausging
+    flashX = 0;
     // Y-Position = Ballmitte (zur Zeit des Austritts)
     flashY = ball.y + ball.height / 2;
     flashTimer = 20; // 20 Frames
@@ -331,22 +471,38 @@ function update(timestamp) {
 
   // Ball rechts raus
   if (ball.x + ball.width > WIDTH) {
-    if (userSide === 'right') {
-      // User hat verpasst -> AI Punkt
-      aiScore++;
-      flashX = WIDTH;
+    if (gameMode === "survival" && userSide === 'right') {
+      // In Survival: Leben verlieren wenn der Ball hinter dem Spieler rausgeht
+      lives--;
+      updateLifeCounter();
+      
+      if (lives <= 0) {
+        const now = performance.now();
+        const survivedTime = Math.floor((now - gameStartTime) / 1000);
+        const minutes = Math.floor(survivedTime / 60);
+        const seconds = survivedTime % 60;
+        
+        endGame(false, `Überlebt: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        return;
+      }
     } else {
-      // AI ist rechts -> User Punkt
-      userScore++;
-      flashX = WIDTH;
+      // Standard-Modus Punktezählung
+      if (userSide === 'right') {
+        // User hat verpasst -> AI Punkt
+        aiScore++;
+      } else {
+        // AI ist rechts -> User Punkt
+        userScore++;
+      }
     }
+    flashX = WIDTH;
     flashY = ball.y + ball.height / 2;
     flashTimer = 20;
     resetBall();
   }
 
-  // Siegbedingung
-  if (maxPoints > 0) {
+  // Siegbedingung im Standard-Modus
+  if (gameMode === "standard" && maxPoints > 0) {
     if (userScore >= maxPoints) {
       endGame(true);
     } else if (aiScore >= maxPoints) {
@@ -382,7 +538,13 @@ function draw() {
   ctx.font = '28px Arial';
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
-  ctx.fillText(`You: ${userScore} - Computer: ${aiScore}`, WIDTH / 2, 40);
+  
+  if (gameMode === "standard") {
+    ctx.fillText(`You: ${userScore} - Computer: ${aiScore}`, WIDTH / 2, 40);
+  } else {
+    // Im Survival-Modus zeigen wir nur die Score-Anzeigen über dem Canvas an
+    // Der Text hier oben würde mit den neuen Anzeigen kollidieren
+  }
 
   // Roter Streifen falls Timer aktiv
   if (flashTimer > 0 && flashX !== null && flashY !== null) {
@@ -422,8 +584,17 @@ function draw() {
 function resetBall() {
   ball.x = WIDTH / 2 - ballSize / 2;
   ball.y = HEIGHT / 2 - ballSize / 2;
-  ball.dx = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
-  ball.dy = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
+  
+  if (gameMode === "survival") {
+    // Im Survival-Modus bleibt die erhöhte Geschwindigkeit erhalten
+    const baseSpeed = ballSpeed * speedMultiplier;
+    ball.dx = (Math.random() < 0.5 ? 1 : -1) * baseSpeed;
+    ball.dy = (Math.random() < 0.5 ? 1 : -1) * baseSpeed;
+  } else {
+    // Im Standard-Modus normale Geschwindigkeit
+    ball.dx = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
+    ball.dy = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
+  }
 }
 
 function checkCollision(b, p) {
@@ -448,7 +619,7 @@ function playSound() {
   pingSound.play();
 }
 
-function endGame(playerWon) {
+function endGame(playerWon, customMessage = null) {
   gameRunning = false;
   gameCanvas.style.display = 'none';
   pauseBtn.style.display = 'none'; // Pause-Button ausblenden
@@ -458,8 +629,22 @@ function endGame(playerWon) {
   document.removeEventListener('keydown', onKeyDown);
   document.removeEventListener('keyup', onKeyUp);
   gameCanvas.removeEventListener('touchmove', onTouchMove);
+  
+  // Survival-Modus Timer stoppen
+  if (gameMode === "survival") {
+    clearInterval(gameTimer);
+    
+    // Status-Anzeigen entfernen
+    if (gameStatusDiv) gameStatusDiv.remove();
+    if (speedIndicator) speedIndicator.remove();
+  }
 
-  if (playerWon) {
+  if (customMessage) {
+    // Benutzerdefinierte Nachricht für den Survival-Modus
+    endTitle.textContent = 'Spielende!';
+    endMessage.textContent = customMessage;
+  } else if (playerWon) {
+    // Standard-Modus Gewonnen
     endTitle.textContent = 'Glückwunsch!';
     endMessage.textContent = `Du hast ${userScore}:${aiScore} gewonnen.`;
     if (userScore > storedHighscore) {
@@ -467,6 +652,7 @@ function endGame(playerWon) {
       storedHighscore = userScore;
     }
   } else {
+    // Standard-Modus Verloren
     endTitle.textContent = 'Verloren!';
     endMessage.textContent = `Der Computer hat ${aiScore}:${userScore} gewonnen.`;
     if (userScore > storedHighscore) {
@@ -475,5 +661,7 @@ function endGame(playerWon) {
     }
   }
 
-  highscoreDisplay.textContent = storedHighscore;
+  if (highscoreDisplay) {
+    highscoreDisplay.textContent = storedHighscore;
+  }
 }
