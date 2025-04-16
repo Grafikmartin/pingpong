@@ -1,5 +1,6 @@
 /******************************************************
- * Globale Variablen und Konfiguration
+ * script.js – Mit Pause, rotem Streifen an Austrittsstelle,
+ * Wahl links/rechts, Highscore, Touch & Keyboard, usw.
  ******************************************************/
 
 // DOM-Elemente
@@ -16,71 +17,92 @@ const soundCheckbox = document.getElementById('soundOn');
 const highscoreDisplay = document.getElementById('highscoreValue');
 const pingSound = document.getElementById('pingSound');
 const sideChoiceSelect = document.getElementById('sideChoice');
+const pauseBtn = document.getElementById('pauseBtn');
 
-// Canvas
+// Canvas-Kontext
 const ctx = gameCanvas.getContext('2d');
 const WIDTH = gameCanvas.width;
 const HEIGHT = gameCanvas.height;
 
-// Schläger (Paddles)
+// Paddles
 const paddleWidth = 10;
 const paddleHeight = 80;
 
 // Ball
 const ballSize = 10; // Durchmesser
 
-// Variablen für Spiel-Status
-let userPaddle, aiPaddle;
+// Score
 let userScore = 0;
 let aiScore = 0;
 
+// Einstellungen/Status
 let paddleSpeed, ballSpeed;
 let maxPoints;
 let difficulty;
 let soundOn;
 let userSide; // 'left' oder 'right'
-
 let gameRunning = false;
+let isPaused = false;
+
+// Zeit / Geschwindigkeit
 let gameStartTime = 0;
 let lastSpeedIncreaseTime = 0;
 
-// Highscore aus localStorage laden (oder 0, falls nichts gespeichert)
+// Highscore
 let storedHighscore = parseInt(localStorage.getItem('pongHighscore'), 10) || 0;
 highscoreDisplay.textContent = storedHighscore;
 
-// Endscreen anfangs versteckt halten
-endScreen.style.display = 'none';
+// Paddles und Ball
+let userPaddle, aiPaddle, ball;
 
+// "Roter Streifen" bei Punktverlust
+// - wir zeichnen nur dort, wo der Ball wirklich rausging
+let flashX = null;   // x-Koordinate (0 oder WIDTH)
+let flashY = null;   // y-Koordinate (Ballhöhe) 
+let flashTimer = 0;  // frames, in denen die Linie sichtbar ist
+
+// Endscreen und Pause-Button anfangs ausblenden
+endScreen.style.display = 'none';
+pauseBtn.style.display = 'none';
 
 /******************************************************
  * Events
  ******************************************************/
-startBtn.addEventListener('click', () => {
-  startGame();
-});
 
+// Spiel starten
+startBtn.addEventListener('click', startGame);
+
+// Nochmal spielen
 restartBtn.addEventListener('click', () => {
-  // Endscreen ausblenden, Menü zeigen
   endScreen.style.display = 'none';
   menu.style.display = 'flex';
 });
 
+// Pause/Weiter
+pauseBtn.addEventListener('click', () => {
+  isPaused = !isPaused;
+  pauseBtn.textContent = isPaused ? '▶ Weiter' : '⏸ Pause';
+});
+
 /******************************************************
- * Initialisierung / Spiel starten
+ * startGame
  ******************************************************/
 function startGame() {
-  // Menü ausblenden, Canvas einblenden
+  // Menü ausblenden, Canvas und Pause-Button anzeigen
   menu.style.display = 'none';
   gameCanvas.style.display = 'block';
+  pauseBtn.style.display = 'block';
+  pauseBtn.textContent = '⏸ Pause';
   endScreen.style.display = 'none';
+  isPaused = false;
 
-  // Einstellungen auslesen
+  // Einstellungen
   difficulty = difficultySelect.value; // 'easy', 'medium', 'hard'
   maxPoints = parseInt(maxPointsInput.value, 10);
   soundOn = soundCheckbox.checked;
   userSide = sideChoiceSelect.value;   // 'left' oder 'right'
 
-  // Schwierigkeitsgrade definieren
+  // Schwierigkeitsgrade
   switch(difficulty) {
     case 'easy':
       paddleSpeed = 5;
@@ -100,7 +122,7 @@ function startGame() {
   userScore = 0;
   aiScore = 0;
 
-  // Schläger-Objekte
+  // Paddles
   let leftPaddle = {
     x: 0,
     y: HEIGHT / 2 - paddleHeight / 2,
@@ -116,7 +138,7 @@ function startGame() {
     dy: 0
   };
 
-  // Abhängig von userSide definieren wir userPaddle und aiPaddle
+  // Je nach userSide
   if (userSide === 'left') {
     userPaddle = leftPaddle;
     aiPaddle = rightPaddle;
@@ -135,21 +157,21 @@ function startGame() {
     dy: (Math.random() < 0.5 ? 1 : -1) * ballSpeed
   };
 
-  // Zeitstempel
+  // Zeit
   gameStartTime = performance.now();
   lastSpeedIncreaseTime = gameStartTime;
 
-  // Steuerung aktivieren
+  // Steuerung
   activateKeyboardControls();
   activateTouchControls();
 
-  // Spiel starten
+  // Los geht's
   gameRunning = true;
   requestAnimationFrame(gameLoop);
 }
 
 /******************************************************
- * Keyboard-Steuerung (Pfeiltasten)
+ * Keyboard Controls
  ******************************************************/
 function activateKeyboardControls() {
   document.addEventListener('keydown', onKeyDown);
@@ -158,13 +180,11 @@ function activateKeyboardControls() {
 
 function onKeyDown(e) {
   if (!gameRunning) return;
-
-  // Pfeil hoch = 38, Pfeil runter = 40
   switch(e.keyCode) {
-    case 38:
+    case 38: // Pfeil hoch
       userPaddle.dy = -paddleSpeed;
       break;
-    case 40:
+    case 40: // Pfeil runter
       userPaddle.dy = paddleSpeed;
       break;
   }
@@ -172,7 +192,6 @@ function onKeyDown(e) {
 
 function onKeyUp(e) {
   if (!gameRunning) return;
-
   switch(e.keyCode) {
     case 38:
     case 40:
@@ -182,21 +201,20 @@ function onKeyUp(e) {
 }
 
 /******************************************************
- * Touch-Steuerung (Handy/Tablet)
+ * Touch Controls
  ******************************************************/
 function activateTouchControls() {
   gameCanvas.addEventListener('touchmove', onTouchMove);
 }
 
 function onTouchMove(e) {
-  e.preventDefault(); // Verhindert Scrollen auf Handy
+  e.preventDefault();
   if (!gameRunning || e.touches.length === 0) return;
 
   const touch = e.touches[0];
   const rect = gameCanvas.getBoundingClientRect();
   const touchY = touch.clientY - rect.top;
 
-  // Paddle zentrieren auf touchY
   userPaddle.y = touchY - paddleHeight / 2;
 
   // Begrenzungen
@@ -207,22 +225,25 @@ function onTouchMove(e) {
 }
 
 /******************************************************
- * Hauptschleife: gameLoop
+ * gameLoop
  ******************************************************/
 function gameLoop(timestamp) {
   if (!gameRunning) return;
 
-  update(timestamp);
-  draw();
+  // Nur updaten & zeichnen, wenn nicht pausiert
+  if (!isPaused) {
+    update(timestamp);
+    draw();
+  }
 
   requestAnimationFrame(gameLoop);
 }
 
 /******************************************************
- * Logik: update
+ * update
  ******************************************************/
 function update(timestamp) {
-  // Alle 60 Sekunden Ball schneller machen
+  // Ballbeschleunigung alle 60 Sek.
   const elapsedSec = (timestamp - lastSpeedIncreaseTime) / 1000;
   if (elapsedSec >= 60) {
     ball.dx *= 1.2;
@@ -230,15 +251,14 @@ function update(timestamp) {
     lastSpeedIncreaseTime = timestamp;
   }
 
-  // User-Paddle bewegen
+  // User-Paddle
   userPaddle.y += userPaddle.dy;
-  // Begrenzungen
   if (userPaddle.y < 0) userPaddle.y = 0;
   if (userPaddle.y + paddleHeight > HEIGHT) {
     userPaddle.y = HEIGHT - paddleHeight;
   }
 
-  // KI-Paddle bewegen
+  // AI-Paddle
   let computerSpeed = paddleSpeed;
   if (difficulty === 'easy') {
     computerSpeed = paddleSpeed - 2;
@@ -246,82 +266,86 @@ function update(timestamp) {
     computerSpeed = paddleSpeed + 2;
   }
 
-  // Einfache KI: Paddle folgt dem Ball
-  // (Der Computer steuert aiPaddle)
+  // Einfacher KI-Algorithmus
   if (ball.y < aiPaddle.y) {
     aiPaddle.y -= computerSpeed * 0.7;
   } else if (ball.y > aiPaddle.y + aiPaddle.height) {
     aiPaddle.y += computerSpeed * 0.7;
   }
-  // Begrenzungen
   if (aiPaddle.y < 0) aiPaddle.y = 0;
   if (aiPaddle.y + paddleHeight > HEIGHT) {
     aiPaddle.y = HEIGHT - paddleHeight;
   }
 
-  // Ball aktualisieren
+  // Ball bewegen
   ball.x += ball.dx;
   ball.y += ball.dy;
 
-  // Kollision oben/unten
+  // Koll. oben/unten
   if (ball.y < 0 || (ball.y + ball.height) > HEIGHT) {
     ball.dy *= -1;
     playSound();
   }
 
-  // Prüfen, ob der Ball das userPaddle trifft
+  // Koll. userPaddle
   if (checkCollision(ball, userPaddle)) {
-    // Stoß nach "innen"
     if (userSide === 'left') {
-      // Ball geht nach rechts
-      ball.dx = Math.abs(ball.dx);
+      ball.dx = Math.abs(ball.dx); // immer nach rechts
     } else {
-      // Ball geht nach links
-      ball.dx = -Math.abs(ball.dx);
+      ball.dx = -Math.abs(ball.dx); // immer nach links
     }
     addSpin(userPaddle);
     playSound();
   }
 
-  // Prüfen, ob der Ball das aiPaddle trifft
+  // Koll. aiPaddle
   if (checkCollision(ball, aiPaddle)) {
-    // Stoß nach "innen"
     if (userSide === 'left') {
-      // AI ist rechts => Ball muss nach links
-      ball.dx = -Math.abs(ball.dx);
+      // AI ist rechts
+      ball.dx = -Math.abs(ball.dx); 
     } else {
-      // AI ist links => Ball muss nach rechts
+      // AI ist links
       ball.dx = Math.abs(ball.dx);
     }
     addSpin(aiPaddle);
     playSound();
   }
 
-  // Punktevergabe: Je nach userSide
-  // Wenn Ball links rausgeht
+  // Ball links raus
   if (ball.x < 0) {
     if (userSide === 'left') {
-      // User hat links verpasst => AI kriegt den Punkt
+      // User hat verpasst -> AI Punkt
       aiScore++;
+      // Roter Streifen genau dort, wo der Ball rausging
+      flashX = 0;
     } else {
-      // AI ist links => User punktet
+      // AI ist links -> User Punkt
       userScore++;
+      flashX = 0;
     }
-    resetBall();
-  }
-  // Wenn Ball rechts rausgeht
-  if (ball.x + ball.width > WIDTH) {
-    if (userSide === 'right') {
-      // User hat rechts verpasst => AI kriegt den Punkt
-      aiScore++;
-    } else {
-      // AI ist rechts => User punktet
-      userScore++;
-    }
+    // Y-Position = Ballmitte (zur Zeit des Austritts)
+    flashY = ball.y + ball.height / 2;
+    flashTimer = 20; // 20 Frames
     resetBall();
   }
 
-  // Prüfen, ob das Spiel vorbei ist
+  // Ball rechts raus
+  if (ball.x + ball.width > WIDTH) {
+    if (userSide === 'right') {
+      // User hat verpasst -> AI Punkt
+      aiScore++;
+      flashX = WIDTH;
+    } else {
+      // AI ist rechts -> User Punkt
+      userScore++;
+      flashX = WIDTH;
+    }
+    flashY = ball.y + ball.height / 2;
+    flashTimer = 20;
+    resetBall();
+  }
+
+  // Siegbedingung
   if (maxPoints > 0) {
     if (userScore >= maxPoints) {
       endGame(true);
@@ -332,7 +356,7 @@ function update(timestamp) {
 }
 
 /******************************************************
- * Zeichnen: draw()
+ * draw
  ******************************************************/
 function draw() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -342,7 +366,7 @@ function draw() {
   ctx.fillRect(userPaddle.x, userPaddle.y, userPaddle.width, userPaddle.height);
   ctx.fillRect(aiPaddle.x, aiPaddle.y, aiPaddle.width, aiPaddle.height);
 
-  // Ball als Kreis
+  // Ball (rund)
   ctx.beginPath();
   ctx.arc(
     ball.x + ball.width / 2,
@@ -354,18 +378,47 @@ function draw() {
   ctx.fill();
   ctx.closePath();
 
-  // Spielstand
-  // Wir zeigen "User: X - AI: Y" mittig oben in größerer Schrift
+  // Score oben
   ctx.font = '28px Arial';
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.fillText(`User: ${userScore} - AI: ${aiScore}`, WIDTH / 2, 40);
+
+  // Roter Streifen falls Timer aktiv
+  if (flashTimer > 0 && flashX !== null && flashY !== null) {
+    ctx.fillStyle = 'red';
+    // "Breite" in X-Richtung je nachdem, ob links oder rechts
+    const thickness = 40; // wie hoch der Balken ist
+    const half = thickness / 2;
+    const lineWidth = 15; // dicke Linie in X-Richtung
+
+    // flashX = 0 oder WIDTH
+    // flashY = Ballmitte
+    // Wir zeichnen also senkrecht bei x=flashX, Höhe ~thickness
+    // Bei left => x=0
+    // Bei right => x=WIDTH-(lineWidth)
+    let drawX = flashX === 0 ? 0 : (WIDTH - lineWidth);
+    let drawY = flashY - half; // zentriert um die Ballmitte
+
+    // Begrenzung, falls der Ball gerade ganz oben/unten raus ist
+    if (drawY < 0) drawY = 0;
+    if (drawY + thickness > HEIGHT) {
+      drawY = HEIGHT - thickness;
+    }
+
+    ctx.fillRect(drawX, drawY, lineWidth, thickness);
+
+    flashTimer--;
+    if (flashTimer <= 0) {
+      flashX = null;
+      flashY = null;
+    }
+  }
 }
 
 /******************************************************
  * Hilfsfunktionen
  ******************************************************/
-
 function resetBall() {
   ball.x = WIDTH / 2 - ballSize / 2;
   ball.y = HEIGHT / 2 - ballSize / 2;
@@ -373,20 +426,6 @@ function resetBall() {
   ball.dy = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
 }
 
-function playSound() {
-  if (!soundOn) return;
-  pingSound.currentTime = 0;
-  pingSound.play();
-}
-
-function addSpin(paddle) {
-  const paddleCenter = paddle.y + paddle.height / 2;
-  const ballCenter = ball.y + ball.height / 2;
-  const distance = ballCenter - paddleCenter;
-  ball.dy += distance * 0.1;
-}
-
-// Kollisions-Check
 function checkCollision(b, p) {
   return (
     b.x < p.x + p.width &&
@@ -396,13 +435,23 @@ function checkCollision(b, p) {
   );
 }
 
-/**
- * endGame: wird aufgerufen, wenn maxPoints erreicht ist.
- * playerWon = true/false
- */
+function addSpin(paddle) {
+  const paddleCenter = paddle.y + paddle.height / 2;
+  const ballCenter = ball.y + ball.height / 2;
+  const distance = ballCenter - paddleCenter;
+  ball.dy += distance * 0.1;
+}
+
+function playSound() {
+  if (!soundOn) return;
+  pingSound.currentTime = 0;
+  pingSound.play();
+}
+
 function endGame(playerWon) {
   gameRunning = false;
   gameCanvas.style.display = 'none';
+  pauseBtn.style.display = 'none'; // Pause-Button ausblenden
   endScreen.style.display = 'block';
 
   // Events entfernen
@@ -413,8 +462,6 @@ function endGame(playerWon) {
   if (playerWon) {
     endTitle.textContent = 'Glückwunsch!';
     endMessage.textContent = `Du hast ${userScore}:${aiScore} gewonnen.`;
-
-    // Highscore
     if (userScore > storedHighscore) {
       localStorage.setItem('pongHighscore', userScore);
       storedHighscore = userScore;
@@ -422,9 +469,6 @@ function endGame(playerWon) {
   } else {
     endTitle.textContent = 'Verloren!';
     endMessage.textContent = `Der Computer hat ${aiScore}:${userScore} gewonnen.`;
-
-    // Vielleicht will man den Highscore nur erhöhen, wenn man gewinnt.
-    // Falls du stattdessen die userScore immer speicherst (z.B. "Best Score"):
     if (userScore > storedHighscore) {
       localStorage.setItem('pongHighscore', userScore);
       storedHighscore = userScore;
