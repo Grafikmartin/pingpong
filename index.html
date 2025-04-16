@@ -2,29 +2,35 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Ping Pong mit Pfeiltasten & Touch</title>
+  <title>Ping Pong</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Meta-Viewport sorgt dafür, dass das Layout am Handy korrekt skaliert -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   
   <!-- Einstellungs-Menü -->
   <div id="menu">
     <h1>Ping Pong</h1>
+
+    <label for="sideChoice">Seite wählen:</label>
+    <select id="sideChoice">
+      <option value="left" selected>Links</option>
+      <option value="right">Rechts</option>
+    </select>
+
     <label for="difficulty">Schwierigkeitsgrad:</label>
     <select id="difficulty">
       <option value="easy">Einfach</option>
       <option value="medium" selected>Mittel</option>
       <option value="hard">Schwer</option>
     </select>
-    <br /><br />
 
     <label for="maxPoints">Punktegrenze (0 = Endlos):</label>
     <input type="number" id="maxPoints" value="10" min="0" />
-    <br /><br />
 
     <label for="soundOn">Sound an/aus:</label>
     <input type="checkbox" id="soundOn" checked />
-    <br /><br />
 
     <button id="startBtn">Spiel starten</button>
     

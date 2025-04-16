@@ -1,5 +1,5 @@
 /******************************************************
- * script.js
+ * Globale Variablen und Konfiguration
  ******************************************************/
 
 // DOM-Elemente
@@ -15,8 +15,9 @@ const maxPointsInput = document.getElementById('maxPoints');
 const soundCheckbox = document.getElementById('soundOn');
 const highscoreDisplay = document.getElementById('highscoreValue');
 const pingSound = document.getElementById('pingSound');
+const sideChoiceSelect = document.getElementById('sideChoice');
 
-// Canvas und Kontext
+// Canvas
 const ctx = gameCanvas.getContext('2d');
 const WIDTH = gameCanvas.width;
 const HEIGHT = gameCanvas.height;
@@ -29,42 +30,43 @@ const paddleHeight = 80;
 const ballSize = 10; // Durchmesser
 
 // Variablen für Spiel-Status
-let leftPaddle, rightPaddle, ball;
-let leftScore = 0;
-let rightScore = 0;
+let userPaddle, aiPaddle;
+let userScore = 0;
+let aiScore = 0;
+
 let paddleSpeed, ballSpeed;
 let maxPoints;
 let difficulty;
 let soundOn;
+let userSide; // 'left' oder 'right'
+
 let gameRunning = false;
 let gameStartTime = 0;
 let lastSpeedIncreaseTime = 0;
 
 // Highscore aus localStorage laden (oder 0, falls nichts gespeichert)
 let storedHighscore = parseInt(localStorage.getItem('pongHighscore'), 10) || 0;
-
-// Beim Laden: Endscreen verstecken, Highscore anzeigen
-endScreen.style.display = 'none';
 highscoreDisplay.textContent = storedHighscore;
+
+// Endscreen anfangs versteckt halten
+endScreen.style.display = 'none';
+
 
 /******************************************************
  * Events
  ******************************************************/
-
-// "Spiel starten" aus dem Menü
 startBtn.addEventListener('click', () => {
   startGame();
 });
 
-// "Nochmal spielen" aus dem Endscreen
 restartBtn.addEventListener('click', () => {
-  // Endscreen ausblenden, Menü wieder zeigen
+  // Endscreen ausblenden, Menü zeigen
   endScreen.style.display = 'none';
   menu.style.display = 'flex';
 });
 
 /******************************************************
- * Spiel starten
+ * Initialisierung / Spiel starten
  ******************************************************/
 function startGame() {
   // Menü ausblenden, Canvas einblenden
@@ -76,12 +78,13 @@ function startGame() {
   difficulty = difficultySelect.value; // 'easy', 'medium', 'hard'
   maxPoints = parseInt(maxPointsInput.value, 10);
   soundOn = soundCheckbox.checked;
+  userSide = sideChoiceSelect.value;   // 'left' oder 'right'
 
-  // Schwierigkeitsgrade definieren (Computer-Geschwindigkeit, Start-Ballgeschwindigkeit)
-  switch (difficulty) {
+  // Schwierigkeitsgrade definieren
+  switch(difficulty) {
     case 'easy':
-      paddleSpeed = 5;   // Spieler
-      ballSpeed = 4;     // Ball
+      paddleSpeed = 5;
+      ballSpeed = 4;
       break;
     case 'medium':
       paddleSpeed = 7;
@@ -93,29 +96,37 @@ function startGame() {
       break;
   }
 
-  // Scores zurücksetzen
-  leftScore = 0;
-  rightScore = 0;
+  // Score zurücksetzen
+  userScore = 0;
+  aiScore = 0;
 
-  // Paddles initialisieren
-  leftPaddle = {
+  // Schläger-Objekte
+  let leftPaddle = {
     x: 0,
     y: HEIGHT / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
     dy: 0
   };
-  rightPaddle = {
+  let rightPaddle = {
     x: WIDTH - paddleWidth,
     y: HEIGHT / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    dy: 0 // Wird per KI gesteuert
+    dy: 0
   };
 
-  // Ball initialisieren
+  // Abhängig von userSide definieren wir userPaddle und aiPaddle
+  if (userSide === 'left') {
+    userPaddle = leftPaddle;
+    aiPaddle = rightPaddle;
+  } else {
+    userPaddle = rightPaddle;
+    aiPaddle = leftPaddle;
+  }
+
+  // Ball
   ball = {
-    // Wir nehmen ballSize als Durchmesser
     x: WIDTH / 2 - ballSize / 2,
     y: HEIGHT / 2 - ballSize / 2,
     width: ballSize,
@@ -124,7 +135,7 @@ function startGame() {
     dy: (Math.random() < 0.5 ? 1 : -1) * ballSpeed
   };
 
-  // Zeitstempel setzen
+  // Zeitstempel
   gameStartTime = performance.now();
   lastSpeedIncreaseTime = gameStartTime;
 
@@ -147,23 +158,25 @@ function activateKeyboardControls() {
 
 function onKeyDown(e) {
   if (!gameRunning) return;
+
   // Pfeil hoch = 38, Pfeil runter = 40
-  switch (e.keyCode) {
+  switch(e.keyCode) {
     case 38:
-      leftPaddle.dy = -paddleSpeed;
+      userPaddle.dy = -paddleSpeed;
       break;
     case 40:
-      leftPaddle.dy = paddleSpeed;
+      userPaddle.dy = paddleSpeed;
       break;
   }
 }
 
 function onKeyUp(e) {
   if (!gameRunning) return;
-  switch (e.keyCode) {
+
+  switch(e.keyCode) {
     case 38:
     case 40:
-      leftPaddle.dy = 0;
+      userPaddle.dy = 0;
       break;
   }
 }
@@ -172,12 +185,11 @@ function onKeyUp(e) {
  * Touch-Steuerung (Handy/Tablet)
  ******************************************************/
 function activateTouchControls() {
-  // Fingerbewegung auf dem Canvas -> Paddle verschieben
   gameCanvas.addEventListener('touchmove', onTouchMove);
 }
 
 function onTouchMove(e) {
-  e.preventDefault(); // verhindert Scrollen auf Handy
+  e.preventDefault(); // Verhindert Scrollen auf Handy
   if (!gameRunning || e.touches.length === 0) return;
 
   const touch = e.touches[0];
@@ -185,12 +197,12 @@ function onTouchMove(e) {
   const touchY = touch.clientY - rect.top;
 
   // Paddle zentrieren auf touchY
-  leftPaddle.y = touchY - paddleHeight / 2;
+  userPaddle.y = touchY - paddleHeight / 2;
 
   // Begrenzungen
-  if (leftPaddle.y < 0) leftPaddle.y = 0;
-  if (leftPaddle.y + paddleHeight > HEIGHT) {
-    leftPaddle.y = HEIGHT - paddleHeight;
+  if (userPaddle.y < 0) userPaddle.y = 0;
+  if (userPaddle.y + paddleHeight > HEIGHT) {
+    userPaddle.y = HEIGHT - paddleHeight;
   }
 }
 
@@ -218,13 +230,15 @@ function update(timestamp) {
     lastSpeedIncreaseTime = timestamp;
   }
 
-  // Linkes Paddle (Spieler)
-  leftPaddle.y += leftPaddle.dy;
+  // User-Paddle bewegen
+  userPaddle.y += userPaddle.dy;
   // Begrenzungen
-  if (leftPaddle.y < 0) leftPaddle.y = 0;
-  if (leftPaddle.y + paddleHeight > HEIGHT) leftPaddle.y = HEIGHT - paddleHeight;
+  if (userPaddle.y < 0) userPaddle.y = 0;
+  if (userPaddle.y + paddleHeight > HEIGHT) {
+    userPaddle.y = HEIGHT - paddleHeight;
+  }
 
-  // Rechtes Paddle (Computer-Gegner)
+  // KI-Paddle bewegen
   let computerSpeed = paddleSpeed;
   if (difficulty === 'easy') {
     computerSpeed = paddleSpeed - 2;
@@ -232,19 +246,20 @@ function update(timestamp) {
     computerSpeed = paddleSpeed + 2;
   }
 
-  // Einfacher Algorithmus: Paddle folgt dem Ball
-  if (ball.y < rightPaddle.y) {
-    rightPaddle.y -= computerSpeed * 0.7;
-  } else if (ball.y > rightPaddle.y + rightPaddle.height) {
-    rightPaddle.y += computerSpeed * 0.7;
+  // Einfache KI: Paddle folgt dem Ball
+  // (Der Computer steuert aiPaddle)
+  if (ball.y < aiPaddle.y) {
+    aiPaddle.y -= computerSpeed * 0.7;
+  } else if (ball.y > aiPaddle.y + aiPaddle.height) {
+    aiPaddle.y += computerSpeed * 0.7;
   }
   // Begrenzungen
-  if (rightPaddle.y < 0) rightPaddle.y = 0;
-  if (rightPaddle.y + paddleHeight > HEIGHT) {
-    rightPaddle.y = HEIGHT - paddleHeight;
+  if (aiPaddle.y < 0) aiPaddle.y = 0;
+  if (aiPaddle.y + paddleHeight > HEIGHT) {
+    aiPaddle.y = HEIGHT - paddleHeight;
   }
 
-  // Ball bewegen
+  // Ball aktualisieren
   ball.x += ball.dx;
   ball.y += ball.dy;
 
@@ -254,45 +269,63 @@ function update(timestamp) {
     playSound();
   }
 
-  // Kollision mit linkem Paddle
-  if (
-    ball.x <= leftPaddle.x + leftPaddle.width &&
-    ball.y + ball.height >= leftPaddle.y &&
-    ball.y <= leftPaddle.y + leftPaddle.height
-  ) {
-    ball.dx = Math.abs(ball.dx); // nach rechts
-    addSpin(leftPaddle);
+  // Prüfen, ob der Ball das userPaddle trifft
+  if (checkCollision(ball, userPaddle)) {
+    // Stoß nach "innen"
+    if (userSide === 'left') {
+      // Ball geht nach rechts
+      ball.dx = Math.abs(ball.dx);
+    } else {
+      // Ball geht nach links
+      ball.dx = -Math.abs(ball.dx);
+    }
+    addSpin(userPaddle);
     playSound();
   }
 
-  // Kollision mit rechtem Paddle
-  if (
-    ball.x + ball.width >= rightPaddle.x &&
-    ball.y + ball.height >= rightPaddle.y &&
-    ball.y <= rightPaddle.y + rightPaddle.height
-  ) {
-    ball.dx = -Math.abs(ball.dx); // nach links
-    addSpin(rightPaddle);
+  // Prüfen, ob der Ball das aiPaddle trifft
+  if (checkCollision(ball, aiPaddle)) {
+    // Stoß nach "innen"
+    if (userSide === 'left') {
+      // AI ist rechts => Ball muss nach links
+      ball.dx = -Math.abs(ball.dx);
+    } else {
+      // AI ist links => Ball muss nach rechts
+      ball.dx = Math.abs(ball.dx);
+    }
+    addSpin(aiPaddle);
     playSound();
   }
 
-  // Ball aus linker Seite raus -> Punkt Computer
+  // Punktevergabe: Je nach userSide
+  // Wenn Ball links rausgeht
   if (ball.x < 0) {
-    rightScore++;
+    if (userSide === 'left') {
+      // User hat links verpasst => AI kriegt den Punkt
+      aiScore++;
+    } else {
+      // AI ist links => User punktet
+      userScore++;
+    }
     resetBall();
   }
-
-  // Ball aus rechter Seite raus -> Punkt Spieler
+  // Wenn Ball rechts rausgeht
   if (ball.x + ball.width > WIDTH) {
-    leftScore++;
+    if (userSide === 'right') {
+      // User hat rechts verpasst => AI kriegt den Punkt
+      aiScore++;
+    } else {
+      // AI ist rechts => User punktet
+      userScore++;
+    }
     resetBall();
   }
 
-  // Prüfen, ob das Spiel vorbei ist (falls maxPoints != 0)
+  // Prüfen, ob das Spiel vorbei ist
   if (maxPoints > 0) {
-    if (leftScore >= maxPoints) {
+    if (userScore >= maxPoints) {
       endGame(true);
-    } else if (rightScore >= maxPoints) {
+    } else if (aiScore >= maxPoints) {
       endGame(false);
     }
   }
@@ -306,12 +339,11 @@ function draw() {
 
   // Paddles
   ctx.fillStyle = '#FFF';
-  ctx.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
-  ctx.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+  ctx.fillRect(userPaddle.x, userPaddle.y, userPaddle.width, userPaddle.height);
+  ctx.fillRect(aiPaddle.x, aiPaddle.y, aiPaddle.width, aiPaddle.height);
 
   // Ball als Kreis
   ctx.beginPath();
-  // ball.width == ballSize (Durchmesser), radius = ballSize/2
   ctx.arc(
     ball.x + ball.width / 2,
     ball.y + ball.height / 2,
@@ -322,33 +354,31 @@ function draw() {
   ctx.fill();
   ctx.closePath();
 
-  // Scores
-  ctx.font = '20px Arial';
-  ctx.fillText(`${leftScore}`, WIDTH / 4, 30);
-  ctx.fillText(`${rightScore}`, (WIDTH * 3) / 4, 30);
+  // Spielstand
+  // Wir zeigen "User: X - AI: Y" mittig oben in größerer Schrift
+  ctx.font = '28px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText(`User: ${userScore} - AI: ${aiScore}`, WIDTH / 2, 40);
 }
 
 /******************************************************
  * Hilfsfunktionen
  ******************************************************/
 
-// Ball neu positionieren nach Punkt
 function resetBall() {
   ball.x = WIDTH / 2 - ballSize / 2;
   ball.y = HEIGHT / 2 - ballSize / 2;
-  // Richtung zufällig
   ball.dx = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
   ball.dy = (Math.random() < 0.5 ? 1 : -1) * ballSpeed;
 }
 
-// Sound
 function playSound() {
   if (!soundOn) return;
   pingSound.currentTime = 0;
   pingSound.play();
 }
 
-// Spin, je nachdem wo der Ball das Paddle trifft
 function addSpin(paddle) {
   const paddleCenter = paddle.y + paddle.height / 2;
   const ballCenter = ball.y + ball.height / 2;
@@ -356,35 +386,48 @@ function addSpin(paddle) {
   ball.dy += distance * 0.1;
 }
 
-// Spielende: Endscreen anzeigen
+// Kollisions-Check
+function checkCollision(b, p) {
+  return (
+    b.x < p.x + p.width &&
+    b.x + b.width > p.x &&
+    b.y < p.y + p.height &&
+    b.y + b.height > p.y
+  );
+}
+
+/**
+ * endGame: wird aufgerufen, wenn maxPoints erreicht ist.
+ * playerWon = true/false
+ */
 function endGame(playerWon) {
   gameRunning = false;
   gameCanvas.style.display = 'none';
   endScreen.style.display = 'block';
 
-  // Events entfernen (damit nach dem Spiel kein Durcheinander entsteht)
+  // Events entfernen
   document.removeEventListener('keydown', onKeyDown);
   document.removeEventListener('keyup', onKeyUp);
   gameCanvas.removeEventListener('touchmove', onTouchMove);
 
   if (playerWon) {
     endTitle.textContent = 'Glückwunsch!';
-    endMessage.textContent = `Du hast ${leftScore}:${rightScore} gewonnen.`;
+    endMessage.textContent = `Du hast ${userScore}:${aiScore} gewonnen.`;
 
-    // Highscore updaten, falls nötig
-    if (leftScore > storedHighscore) {
-      localStorage.setItem('pongHighscore', leftScore);
-      storedHighscore = leftScore;
+    // Highscore
+    if (userScore > storedHighscore) {
+      localStorage.setItem('pongHighscore', userScore);
+      storedHighscore = userScore;
     }
-
   } else {
     endTitle.textContent = 'Verloren!';
-    endMessage.textContent = `Der Computer hat ${rightScore}:${leftScore} gewonnen.`;
+    endMessage.textContent = `Der Computer hat ${aiScore}:${userScore} gewonnen.`;
 
-    // Auch hier Highscore prüfen, wenn gewünscht
-    if (leftScore > storedHighscore) {
-      localStorage.setItem('pongHighscore', leftScore);
-      storedHighscore = leftScore;
+    // Vielleicht will man den Highscore nur erhöhen, wenn man gewinnt.
+    // Falls du stattdessen die userScore immer speicherst (z.B. "Best Score"):
+    if (userScore > storedHighscore) {
+      localStorage.setItem('pongHighscore', userScore);
+      storedHighscore = userScore;
     }
   }
 

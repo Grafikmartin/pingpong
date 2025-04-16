@@ -1,77 +1,134 @@
+/* 
+  Responsives Layout 
+  - Größere Abstände 
+  - Zentrierter Text 
+  - Dynamische Größen auf dem Handy
+*/
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #fff;
+  height: 100vh;
+  /* Wir verwenden Flexbox, um das Menü/Canvas/Endscreen zu zentrieren */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Verhindert horizontales Scrollen bei schmalen Bildschirmen */
 body {
-    margin: 0;
-    padding: 0;
-    background: linear-gradient(135deg, #1e1e1e, #2e2e2e);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  
+  overflow-x: hidden;
+}
+
+/* Hauptmenü und Endscreen mit runden Ecken, Schatten etc. */
+#menu, #endScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center; 
+  background-color: #222;
+  border-radius: 20px;
+  padding: 30px 40px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+  max-width: 320px;
+}
+
+/* Überschriften im Menü/Endscreen */
+#menu h1, #endScreen h2 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+}
+
+/* Labels und Inputs */
+#menu label, 
+#menu select,
+#menu input {
+  display: block;
+  margin: 10px 0;
+  font-size: 1rem;
+  width: 100%;
+  max-width: 220px;
+}
+
+#menu select,
+#menu input {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  outline: none;
+  background: #333;
+  color: #fff;
+}
+
+#menu button, 
+#endScreen button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 1.1rem;
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+#menu button:hover, 
+#endScreen button:hover {
+  background-color: #16a085;
+}
+
+/* Highscore-Anzeige im Menü */
+#highscoreDisplay {
+  margin-top: 15px;
+  font-size: 1.1rem;
+}
+
+/* Canvas = Spielfeld */
+#gameCanvas {
+  display: none;
+  background-color: #000;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  margin: 20px; /* etwas Abstand, damit am Handy kein Randproblem entsteht */
+}
+
+/* EndScreen anfangs ausgeblendet */
+#endScreen {
+  display: none;
+  max-width: 320px;
+}
+
+/* 
+  Responsives Verhalten bei schmalen Displays 
+  - wir vergrößern Schrift und passen Breite an 
+*/
+@media (max-width: 600px) {
   #menu, #endScreen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center; /* 👈 das zentriert den Text */
-    background-color: #222;
-    border-radius: 20px;
-    padding: 30px 40px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-    transition: all 0.3s ease;
+    width: 90%;
+    padding: 20px;
   }
-  #endScreen {
-    display: none;
- 
-  }
+
   #menu h1, #endScreen h2 {
-    margin-bottom: 20px;
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
-  
-  #menu label, #menu input, #menu select {
-    margin: 8px 0;
-    font-size: 1rem;
-    width: 100%;
-    max-width: 220px;
+
+  #menu label,
+  #menu select,
+  #menu input {
+    font-size: 1.2rem;
   }
-  
-  #menu input, #menu select {
-    padding: 8px;
-    border: none;
-    border-radius: 6px;
-    outline: none;
-    background: #333;
-    color: #fff;
-  }
-  
+
   #menu button, #endScreen button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    font-size: 1rem;
-    background-color:chocolate;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s ease;
+    font-size: 1.2rem;
   }
-  
-  #menu button:hover, #endScreen button:hover {
-    background-color: #16a085;
-  }
-  
+
   #gameCanvas {
-    display: none;
-    background-color: #000;
-    border: 2px solid #fff;
-    border-radius: 10px;
+    width: 90vw;      /* Canvas skalieren (Breite 90% vom Viewport) */
+    height: 56.25vw;  /* ~16:9 Seitenverhältnis */
+    margin: 5vw;      /* Rand rundherum */
   }
-  
-  #highscoreDisplay {
-    margin-top: 15px;
-    font-size: 1.1rem;
-  }
-  
+}
