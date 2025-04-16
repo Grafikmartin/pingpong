@@ -259,7 +259,8 @@ body {
 }
 
 .mode-btn.active {
-  background-color: chocolate;
+  background-color: #16a085!important;
+  
 }
 
 #modeDescription {
@@ -270,9 +271,11 @@ body {
 }
 
 /* Status-Anzeigen im Spiel */
+
+/* Status-Anzeigen im Spielfeld positionieren */
 .game-status {
   position: absolute;
-  top: 10px;
+  top: -40px; /* Direkt über dem Spielfeld */
   left: 0;
   right: 0;
   display: flex;
@@ -283,23 +286,17 @@ body {
   text-shadow: 1px 1px 2px #000;
 }
 
-.lives-counter {
-  background-color: rgba(0, 0, 0, 0.5);
-  padding: 5px 10px;
-  border-radius: 4px;
-}
+.lives-counter, .timer {
 
-.timer {
-  background-color: rgba(0, 0, 0, 0.5);
   padding: 5px 10px;
   border-radius: 4px;
 }
 
 .speed-indicator {
   position: absolute;
-  bottom: 10px;
+  top: -12px;
   right: 20px;
-  background-color: rgba(0, 0, 0, 0.5);
+  
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 14px;

@@ -34,6 +34,10 @@ const paddleHeight = 80;
 // Ball
 const ballSize = 10; // Durchmesser
 
+// Globale Variablen für Highscore ergänzen
+let storedStandardHighscore = parseInt(localStorage.getItem('pongStandardHighscore'), 10) || 0;
+let storedSurvivalHighscore = parseInt(localStorage.getItem('pongSurvivalHighscore'), 10) || 0;
+
 // Score
 let userScore = 0;
 let aiScore = 0;
@@ -59,12 +63,6 @@ let gameTimer;
 let gameStatusDiv;
 let speedIndicator;
 
-// Highscore
-let storedHighscore = parseInt(localStorage.getItem('pongHighscore'), 10) || 0;
-if (highscoreDisplay) {
-  highscoreDisplay.textContent = storedHighscore;
-}
-
 // Paddles und Ball
 let userPaddle, aiPaddle, ball;
 
@@ -77,6 +75,9 @@ let flashTimer = 0;  // frames, in denen die Linie sichtbar ist
 // Endscreen und Pause-Button anfangs ausblenden
 endScreen.style.display = 'none';
 pauseBtn.style.display = 'none';
+
+// Initialen Highscore setzen
+updateHighscoreDisplay();
 
 /******************************************************
  * Events
@@ -110,7 +111,20 @@ if (survivalModeBtn) {
   });
 }
 
-// Spielmodus setzen
+// Highscore-Anzeige je nach Modus aktualisieren
+function updateHighscoreDisplay() {
+  if (highscoreDisplay) {
+    if (gameMode === "standard") {
+      highscoreDisplay.textContent = storedStandardHighscore;
+    } else {
+      const minutes = Math.floor(storedSurvivalHighscore / 60);
+      const seconds = storedSurvivalHighscore % 60;
+      highscoreDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  }
+}
+
+// Spielmodus setzen und Button aktiv markieren
 function setGameMode(mode) {
   gameMode = mode;
   
@@ -128,6 +142,9 @@ function setGameMode(mode) {
     modeDescription.textContent = "Survival: Max. 3 Tore kassieren. Ball wird alle 10 Sek. schneller.";
     maxPointsInput.disabled = true;
   }
+  
+  // Highscore-Anzeige aktualisieren
+  updateHighscoreDisplay();
 }
 
 /******************************************************
@@ -141,6 +158,9 @@ function startGame() {
   pauseBtn.textContent = '⏸ Pause';
   endScreen.style.display = 'none';
   isPaused = false;
+
+  // Canvas-Container für relative Positionierung (für Status-Anzeigen)
+  document.getElementById("canvasContainer").style.position = "relative";
 
   // Einstellungen
   difficulty = difficultySelect.value; // 'easy', 'medium', 'hard'
@@ -212,17 +232,40 @@ function startGame() {
     lives = 3;
     speedMultiplier = 1.0;
     
-    // Status-Anzeigen erstellen
+    // Status-Anzeigen erstellen - ÜBER dem Spielfeld
     gameStatusDiv = document.createElement("div");
     gameStatusDiv.className = "game-status";
+    gameStatusDiv.style.position = "absolute";
+    gameStatusDiv.style.top = "-40px";
+    gameStatusDiv.style.left = "0";
+    gameStatusDiv.style.right = "0";
+    gameStatusDiv.style.display = "flex";
+    gameStatusDiv.style.justifyContent = "space-between";
+    gameStatusDiv.style.padding = "0 20px";
+    gameStatusDiv.style.zIndex = "10";
+    
     gameStatusDiv.innerHTML = `
-      <div class="lives-counter">Leben: <span id="livesValue">0 von 3</span></div>
-      <div class="timer">Zeit: <span id="timeValue">00:00</span></div>
+      <div class="lives-counter" style="background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;">
+        Leben: <span id="livesValue">0 von 3</span>
+      </div>
+      <div class="timer" style="background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;">
+        Zeit: <span id="timeValue">00:00</span>
+      </div>
     `;
     document.getElementById("canvasContainer").appendChild(gameStatusDiv);
     
     speedIndicator = document.createElement("div");
     speedIndicator.className = "speed-indicator";
+    speedIndicator.style.position = "absolute";
+    speedIndicator.style.bottom = "10px";
+    speedIndicator.style.right = "20px";
+    speedIndicator.style.backgroundColor = "rgba(0,0,0,0.5)";
+    speedIndicator.style.padding = "5px 10px";
+    speedIndicator.style.borderRadius = "4px";
+    speedIndicator.style.fontSize = "14px";
+    speedIndicator.style.color = "white";
+    speedIndicator.style.zIndex = "10";
+    
     speedIndicator.innerHTML = `Geschwindigkeit: <span id="speedValue">1.0x</span>`;
     document.getElementById("canvasContainer").appendChild(speedIndicator);
     
@@ -445,9 +488,10 @@ function update(timestamp) {
       if (lives <= 0) {
         const now = performance.now();
         const survivedTime = Math.floor((now - gameStartTime) / 1000);
+        checkAndUpdateSurvivalHighscore(survivedTime);
+        
         const minutes = Math.floor(survivedTime / 60);
         const seconds = survivedTime % 60;
-        
         endGame(false, `Überlebt: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
         return;
       }
@@ -479,9 +523,10 @@ function update(timestamp) {
       if (lives <= 0) {
         const now = performance.now();
         const survivedTime = Math.floor((now - gameStartTime) / 1000);
+        checkAndUpdateSurvivalHighscore(survivedTime);
+        
         const minutes = Math.floor(survivedTime / 60);
         const seconds = survivedTime % 60;
-        
         endGame(false, `Überlebt: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
         return;
       }
@@ -504,8 +549,10 @@ function update(timestamp) {
   // Siegbedingung im Standard-Modus
   if (gameMode === "standard" && maxPoints > 0) {
     if (userScore >= maxPoints) {
+      checkAndUpdateStandardHighscore();
       endGame(true);
     } else if (aiScore >= maxPoints) {
+      checkAndUpdateStandardHighscore();
       endGame(false);
     }
   }
@@ -534,16 +581,12 @@ function draw() {
   ctx.fill();
   ctx.closePath();
 
-  // Score oben
-  ctx.font = '28px Arial';
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'center';
-  
+  // Score oben - aber nur im Standard-Modus
   if (gameMode === "standard") {
+    ctx.font = '28px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
     ctx.fillText(`You: ${userScore} - Computer: ${aiScore}`, WIDTH / 2, 40);
-  } else {
-    // Im Survival-Modus zeigen wir nur die Score-Anzeigen über dem Canvas an
-    // Der Text hier oben würde mit den neuen Anzeigen kollidieren
   }
 
   // Roter Streifen falls Timer aktiv
@@ -619,6 +662,22 @@ function playSound() {
   pingSound.play();
 }
 
+// Highscore für Standard-Spiel prüfen und aktualisieren
+function checkAndUpdateStandardHighscore() {
+  if (userScore > storedStandardHighscore) {
+    localStorage.setItem('pongStandardHighscore', userScore);
+    storedStandardHighscore = userScore;
+  }
+}
+
+// Highscore für Survival-Modus prüfen und aktualisieren
+function checkAndUpdateSurvivalHighscore(survivedTime) {
+  if (survivedTime > storedSurvivalHighscore) {
+    localStorage.setItem('pongSurvivalHighscore', survivedTime);
+    storedSurvivalHighscore = survivedTime;
+  }
+}
+
 function endGame(playerWon, customMessage = null) {
   gameRunning = false;
   gameCanvas.style.display = 'none';
@@ -647,21 +706,12 @@ function endGame(playerWon, customMessage = null) {
     // Standard-Modus Gewonnen
     endTitle.textContent = 'Glückwunsch!';
     endMessage.textContent = `Du hast ${userScore}:${aiScore} gewonnen.`;
-    if (userScore > storedHighscore) {
-      localStorage.setItem('pongHighscore', userScore);
-      storedHighscore = userScore;
-    }
   } else {
     // Standard-Modus Verloren
     endTitle.textContent = 'Verloren!';
     endMessage.textContent = `Der Computer hat ${aiScore}:${userScore} gewonnen.`;
-    if (userScore > storedHighscore) {
-      localStorage.setItem('pongHighscore', userScore);
-      storedHighscore = userScore;
-    }
   }
 
-  if (highscoreDisplay) {
-    highscoreDisplay.textContent = storedHighscore;
-  }
+  // Highscore-Anzeige aktualisieren
+  updateHighscoreDisplay();
 }
