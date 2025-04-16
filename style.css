@@ -35,6 +35,9 @@ body {
   box-shadow: 0 8px 16px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
   max-width: 320px;
+  overflow: visible;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* Überschriften im Menü/Endscreen */
@@ -64,18 +67,167 @@ body {
   color: #fff;
 }
 
+/* Switch-Wrapper Styling */
+.switchWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 220px;
+  margin: 10px auto;
+  padding: 5px 0;
+  position: relative;
+}
+
+.switchWrapper label {
+  margin-bottom: 5px !important;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.switch {
+  font-size: 17px;
+  position: relative;
+  display: block;
+  width: 5em;
+  height: 2.5em;
+  user-select: none;
+  margin: 0 auto; 
+  transform: translateX(-40px); /* Nach links verschieben */
+}
+
+
+/* Hide default HTML checkbox */
+.switch .cb {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  z-index: 2; /* Stelle sicher, dass die Checkbox über dem Toggle liegt */
+  cursor: pointer;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* The slider */
+.toggle {
+  position: absolute;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  background-color: #373737;
+  border-radius: 0.1em;
+  transition: 0.4s;
+  text-transform: uppercase;
+  font-weight: 700;
+  overflow: hidden;
+  box-shadow: -0.3em 0 0 0 #373737, -0.3em 0.3em 0 0 #373737,
+    0.3em 0 0 0 #373737, 0.3em 0.3em 0 0 #373737, 0 0.3em 0 0 #373737;
+}
+
+.toggle > .left {
+  position: absolute;
+  display: flex;
+  width: 50%;
+  height: 88%;
+  background-color: #f3f3f3;
+  color: #373737;
+  left: 0;
+  bottom: 0;
+  align-items: center;
+  justify-content: center;
+  transform-origin: right;
+  transform: rotateX(10deg);
+  transform-style: preserve-3d;
+  transition: all 150ms;
+}
+
+.left::before {
+  position: absolute;
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-color: rgb(206, 206, 206);
+  transform-origin: center left;
+  transform: rotateY(90deg);
+}
+
+.left::after {
+  position: absolute;
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-color: rgb(112, 112, 112);
+  transform-origin: center bottom;
+  transform: rotateX(90deg);
+}
+
+.toggle > .right {
+  position: absolute;
+  display: flex;
+  width: 50%;
+  height: 88%;
+  background-color: #f3f3f3;
+  color: rgb(206, 206, 206);
+  right: 1px;
+  bottom: 0;
+  align-items: center;
+  justify-content: center;
+  transform-origin: left;
+  transform: rotateX(10deg) rotateY(-45deg);
+  transform-style: preserve-3d;
+  transition: all 150ms;
+}
+
+.right::before {
+  position: absolute;
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-color: rgb(206, 206, 206);
+  transform-origin: center right;
+  transform: rotateY(-90deg);
+}
+
+.right::after {
+  position: absolute;
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-color: rgb(112, 112, 112);
+  transform-origin: center bottom;
+  transform: rotateX(90deg);
+}
+
+.switch input:checked + .toggle > .left {
+  transform: rotateX(10deg) rotateY(45deg);
+  color: rgb(206, 206, 206);
+}
+
+.switch input:checked + .toggle > .right {
+  transform: rotateX(10deg) rotateY(0deg);
+  color: #487bdb;
+}
+
 #menu button, 
 #endScreen button {
   margin-top: 20px;
   padding: 10px 20px;
   font-size: 1.1rem;
-  background-color: #1abc9c;
+  background-color: chocolate;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.3s ease;
 }
+
 #menu button:hover, 
 #endScreen button:hover {
   background-color: #16a085;
@@ -102,9 +254,6 @@ body {
   max-width: 320px;
 }
 
-
-
-
 /* Container um Canvas + Pause-Button */
 #canvasContainer {
   display: flex;
@@ -125,10 +274,10 @@ body {
   cursor: pointer;
   box-shadow: 0 0 8px rgba(0,0,0,0.4);
 }
+
 #pauseBtn:hover {
   background-color: #777;
 }
-
 
 /* 
   Responsives Verhalten bei schmalen Displays 

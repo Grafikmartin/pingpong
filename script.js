@@ -382,7 +382,7 @@ function draw() {
   ctx.font = '28px Arial';
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
-  ctx.fillText(`User: ${userScore} - AI: ${aiScore}`, WIDTH / 2, 40);
+  ctx.fillText(`You: ${userScore} - Computer: ${aiScore}`, WIDTH / 2, 40);
 
   // Roter Streifen falls Timer aktiv
   if (flashTimer > 0 && flashX !== null && flashY !== null) {

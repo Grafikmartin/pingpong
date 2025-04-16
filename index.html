@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8" />
   <title>Ping Pong</title>
   <link rel="stylesheet" href="style.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
-  
+
   <!-- Einstellungs-Menü -->
   <div id="menu">
     <h1>Ping Pong</h1>
@@ -27,12 +29,22 @@
 
     <label for="maxPoints">Punktegrenze (0 = Endlos):</label>
     <input type="number" id="maxPoints" value="10" min="0" />
+    <div class="switchWrapper">
+      <label>Sound</label>
+      <div class="switch">
+        <input id="soundOn" class="cb" type="checkbox" checked />
+        <span class="toggle">
+          <span class="left">aus</span>
+          <span class="right">an</span>
+        </span>
+      </div>
+    </div>
+    
+    
 
-    <label for="soundOn">Sound an/aus:</label>
-    <input type="checkbox" id="soundOn" checked />
 
     <button id="startBtn">Spiel starten</button>
-    
+
     <div id="highscoreDisplay">
       Highscore: <span id="highscoreValue">0</span>
     </div>
@@ -57,4 +69,5 @@
   <!-- Skript -->
   <script src="script.js"></script>
 </body>
+
 </html>
