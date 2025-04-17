@@ -135,7 +135,43 @@ function updateHighscoreDisplay() {
     }
   }
 }
+// Aktuellen Spielstand speichern
+function saveCurrentGameState() {
+  if (!gameRunning) return; // Nur speichern, wenn ein Spiel läuft
+  
+  const gameState = {
+    userScore,
+    aiScore,
+    ballPosition: {x: ball.x, y: ball.y, dx: ball.dx, dy: ball.dy},
+    userPaddlePos: userPaddle.y,
+    aiPaddlePos: aiPaddle.y,
+    timestamp: Date.now(),
+    lives: lives,
+    speedMultiplier: speedMultiplier
+  };
+  
+  localStorage.setItem('pongGameState', JSON.stringify(gameState));
+}
 
+// Spielstand wiederherstellen
+function restoreGameState() {
+  const savedState = localStorage.getItem('pongGameState');
+  if (!savedState) return false;
+  
+  const gameState = JSON.parse(savedState);
+  // Prüfen, ob der Spielstand nicht zu alt ist (z.B. älter als 1 Tag)
+  if (Date.now() - gameState.timestamp > 86400000) {
+    localStorage.removeItem('pongGameState');
+    return false;
+  }
+  
+  // Hier könntest du eine Funktion implementieren, die fragt,
+  // ob der Spieler das vorherige Spiel fortsetzen möchte
+  return true;
+}
+
+// Event-Listener für das Verlassen der Seite hinzufügen
+window.addEventListener('beforeunload', saveCurrentGameState);
 // Spielmodus setzen und Button aktiv markieren
 function setGameMode(mode) {
   gameMode = mode;
@@ -729,3 +765,19 @@ function endGame(playerWon, customMessage = null) {
 }
 // Initial den ausgewählten Spielmodus setzen
 setGameMode(gameMode);
+// Zu Ereignis-Listenern hinzufügen
+standardModeBtn.addEventListener('click', () => {
+  setGameMode("standard");
+  saveGameSettings();
+});
+
+survivalModeBtn.addEventListener('click', () => {
+  setGameMode("survival");
+  saveGameSettings();
+});
+
+// Bei Änderungen an Schwierigkeit, Punkten usw.
+difficultySelect.addEventListener('change', saveGameSettings);
+maxPointsInput.addEventListener('change', saveGameSettings);
+soundCheckbox.addEventListener('change', saveGameSettings);
+sideChoiceSelect.addEventListener('change', saveGameSettings);
