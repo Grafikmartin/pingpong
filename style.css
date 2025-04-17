@@ -22,6 +22,26 @@ html, body {
 body {
   overflow-x: hidden;
 }
+.fullscreen-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  cursor: pointer;
+  
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.fullscreen-icon:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+.material-icons {
+  color: white;
+  font-size: 32px;
+}
 
 /* Hauptmenü und Endscreen mit runden Ecken, Schatten etc. */
 #menu, #endScreen {
@@ -91,6 +111,11 @@ body {
 #highscoreDisplay {
   margin-top: 15px;
   font-size: 1.1rem;
+}
+#highscoreDescription {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-bottom: 5px;
 }
 
 /* Canvas = Spielfeld */

@@ -21,6 +21,9 @@ const pauseBtn = document.getElementById('pauseBtn');
 const standardModeBtn = document.getElementById('standardMode');
 const survivalModeBtn = document.getElementById('survivalMode');
 const modeDescription = document.getElementById('modeDescription');
+const fullscreenIcon = document.getElementById('fullscreenIcon');
+const fullscreenToggle = document.getElementById('fullscreenToggle');
+
 
 // Canvas-Kontext
 const ctx = gameCanvas.getContext('2d');
@@ -72,6 +75,16 @@ let flashX = null;   // x-Koordinate (0 oder WIDTH)
 let flashY = null;   // y-Koordinate (Ballhöhe) 
 let flashTimer = 0;  // frames, in denen die Linie sichtbar ist
 
+
+fullscreenToggle.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    fullscreenIcon.textContent = 'fullscreen_exit';
+  } else {
+    document.exitFullscreen();
+    fullscreenIcon.textContent = 'fullscreen';
+  }
+});
 // Endscreen und Pause-Button anfangs ausblenden
 endScreen.style.display = 'none';
 pauseBtn.style.display = 'none';
@@ -111,7 +124,6 @@ if (survivalModeBtn) {
   });
 }
 
-// Highscore-Anzeige je nach Modus aktualisieren
 function updateHighscoreDisplay() {
   if (highscoreDisplay) {
     if (gameMode === "standard") {
@@ -137,10 +149,12 @@ function setGameMode(mode) {
     standardModeBtn.classList.add("active");
     modeDescription.textContent = "Standard: Gewinne durch Erreichen der Punktegrenze.";
     maxPointsInput.disabled = false;
+    document.getElementById("highscoreDescription").textContent = "Höchste erreichte Punktzahl:";
   } else {
     survivalModeBtn.classList.add("active");
     modeDescription.textContent = "Survival: Max. 3 Tore kassieren. Ball wird alle 10 Sek. schneller.";
     maxPointsInput.disabled = true;
+    document.getElementById("highscoreDescription").textContent = "Längste überlebte Zeit:";
   }
   
   // Highscore-Anzeige aktualisieren
@@ -670,14 +684,12 @@ function checkAndUpdateStandardHighscore() {
   }
 }
 
-// Highscore für Survival-Modus prüfen und aktualisieren
 function checkAndUpdateSurvivalHighscore(survivedTime) {
   if (survivedTime > storedSurvivalHighscore) {
     localStorage.setItem('pongSurvivalHighscore', survivedTime);
     storedSurvivalHighscore = survivedTime;
   }
 }
-
 function endGame(playerWon, customMessage = null) {
   gameRunning = false;
   gameCanvas.style.display = 'none';
@@ -715,3 +727,5 @@ function endGame(playerWon, customMessage = null) {
   // Highscore-Anzeige aktualisieren
   updateHighscoreDisplay();
 }
+// Initial den ausgewählten Spielmodus setzen
+setGameMode(gameMode);
