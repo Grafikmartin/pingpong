@@ -23,7 +23,7 @@ const survivalModeBtn = document.getElementById('survivalMode');
 const modeDescription = document.getElementById('modeDescription');
 const fullscreenIcon = document.getElementById('fullscreenIcon');
 const fullscreenToggle = document.getElementById('fullscreenToggle');
-
+const abortBtn = document.getElementById('abortBtn');
 
 // Canvas-Kontext
 const ctx = gameCanvas.getContext('2d');
@@ -88,7 +88,7 @@ fullscreenToggle.addEventListener('click', () => {
 // Endscreen und Pause-Button anfangs ausblenden
 endScreen.style.display = 'none';
 pauseBtn.style.display = 'none';
-
+abortBtn.style.display = 'none';
 // Initialen Highscore setzen
 updateHighscoreDisplay();
 
@@ -108,9 +108,16 @@ restartBtn.addEventListener('click', () => {
 // Pause/Weiter
 pauseBtn.addEventListener('click', () => {
   isPaused = !isPaused;
-  pauseBtn.textContent = isPaused ? '▶ Weiter' : '⏸ Pause';
+  pauseBtn.textContent = isPaused ? '▶ Continue' : '⏸ Pause';
 });
-
+// Event-Listener für den Abbruch-Button hinzufügen
+abortBtn.addEventListener('click', () => {
+  // Bestätigung vom Benutzer einholen
+  if (confirm('Spiel wirklich abbrechen?')) {
+    // Spiel beenden und zum Menü zurückkehren
+    endGame(false, 'Spiel abgebrochen');
+  }
+});
 // Spielmodus wechseln
 if (standardModeBtn) {
   standardModeBtn.addEventListener('click', () => {
@@ -135,6 +142,41 @@ function updateHighscoreDisplay() {
     }
   }
 }
+
+function saveGameSettings() {
+  const settings = {
+    difficulty: difficultySelect.value,
+    maxPoints: maxPointsInput.value, 
+    soundOn: soundCheckbox.checked,
+    userSide: sideChoiceSelect.value,
+    gameMode: gameMode
+  };
+  localStorage.setItem('pongSettings', JSON.stringify(settings));
+}
+
+// Gespeicherte Einstellungen laden
+function loadGameSettings() {
+  const savedSettings = localStorage.getItem('pongSettings');
+  if (savedSettings) {
+    const settings = JSON.parse(savedSettings);
+    
+    // Einstellungen anwenden
+    difficultySelect.value = settings.difficulty || 'medium';
+    maxPointsInput.value = settings.maxPoints || 5;
+    soundCheckbox.checked = settings.soundOn !== undefined ? settings.soundOn : true;
+    sideChoiceSelect.value = settings.userSide || 'left';
+    
+    // Spielmodus setzen
+    if (settings.gameMode) {
+      gameMode = settings.gameMode;
+      setGameMode(gameMode); // UI aktualisieren
+    }
+  } else {
+    // Standardwerte setzen wenn keine Einstellungen vorhanden
+    soundCheckbox.checked = true;
+  }
+}
+
 // Aktuellen Spielstand speichern
 function saveCurrentGameState() {
   if (!gameRunning) return; // Nur speichern, wenn ein Spiel läuft
@@ -205,6 +247,7 @@ function startGame() {
   menu.style.display = 'none';
   gameCanvas.style.display = 'block';
   pauseBtn.style.display = 'block';
+  abortBtn.style.display = 'block';  // Abbruch-Button anzeigen
   pauseBtn.textContent = '⏸ Pause';
   endScreen.style.display = 'none';
   isPaused = false;
@@ -244,14 +287,16 @@ function startGame() {
     y: HEIGHT / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    dy: 0
+    dy: 0,
+    prevY: HEIGHT / 2 - paddleHeight / 2 // Speichere die vorherige Position
   };
   let rightPaddle = {
     x: WIDTH - paddleWidth,
     y: HEIGHT / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    dy: 0
+    dy: 0,
+    prevY: HEIGHT / 2 - paddleHeight / 2 // Speichere die vorherige Position
   };
 
   // Je nach userSide
@@ -295,7 +340,7 @@ function startGame() {
     gameStatusDiv.style.zIndex = "10";
     
     gameStatusDiv.innerHTML = `
-      <div class="lives-counter" style="background-color: rgba(0,0,0,1); padding: 5px 10px; border-radius: 4px;">
+      <div class="lives-counter" style="background-color: rgb(255, 0, 0); padding: 5px 10px; border-radius: 4px;">
         Leben: <span id="livesValue">0 von 3</span>
       </div>
       <div class="timer" style="background-color: rgba(0,0,0,0.0); padding: 5px 10px; border-radius: 4px;">
@@ -468,27 +513,56 @@ function update(timestamp) {
     userPaddle.y = HEIGHT - paddleHeight;
   }
 
-  // AI-Paddle - im Survival-Modus spielt AI fast perfekt
+  // AI-Paddle 
   let computerSpeed = paddleSpeed;
   let errorFactor = 0.7;
 
   if (gameMode === "survival") {
-    computerSpeed = paddleSpeed + 2;  // Schnellere AI im Survival-Modus
-    errorFactor = 0.9;                // Weniger Fehler 
+    // Survival-Modus bleibt unverändert - KI ist herausfordernd
+    computerSpeed = paddleSpeed + 2;  
+    errorFactor = 0.9;
   } else {
+    // Standard-Modus - einfacher gestalten
     if (difficulty === 'easy') {
+      computerSpeed = paddleSpeed - 3; // Langsamer
+      errorFactor = 0.3;  // Mehr Fehler/Verzögerung
+    } else if (difficulty === 'medium') {
       computerSpeed = paddleSpeed - 2;
       errorFactor = 0.5;
     } else if (difficulty === 'hard') {
-      computerSpeed = paddleSpeed + 2;
-      errorFactor = 0.8;
+      computerSpeed = paddleSpeed;
+      errorFactor = 0.7;  // Immer noch schlagbar
     }
   }
 
   // KI-Algorithmus
   const aiTarget = ball.y + (ball.height / 2) - (aiPaddle.height / 2);
-  aiPaddle.y += (aiTarget - aiPaddle.y) * errorFactor;
   
+  // Verzögerung für die Reaktion im Standard-Modus
+  let reactionDelay = 0;
+  if (gameMode === "standard") {
+    if (difficulty === 'easy') reactionDelay = 10; // Starke Verzögerung
+    else if (difficulty === 'medium') reactionDelay = 5;
+    else if (difficulty === 'hard') reactionDelay = 2;
+  }
+  
+  // KI-Bewegung mit Verzögerung
+  if (Math.abs(aiTarget - aiPaddle.y) > reactionDelay) {
+    aiPaddle.y += (aiTarget - aiPaddle.y) * errorFactor;
+  }
+  
+  // Bewegungsgeschwindigkeit der KI begrenzen
+  const maxMovement = computerSpeed;
+  if (Math.abs(aiPaddle.y - aiPaddle.prevY) > maxMovement) {
+    if (aiPaddle.y > aiPaddle.prevY) {
+      aiPaddle.y = aiPaddle.prevY + maxMovement;
+    } else {
+      aiPaddle.y = aiPaddle.prevY - maxMovement;
+    }
+  }
+  aiPaddle.prevY = aiPaddle.y;
+  
+  // KI-Paddle Grenzen
   if (aiPaddle.y < 0) aiPaddle.y = 0;
   if (aiPaddle.y + paddleHeight > HEIGHT) {
     aiPaddle.y = HEIGHT - paddleHeight;
@@ -730,6 +804,7 @@ function endGame(playerWon, customMessage = null) {
   gameRunning = false;
   gameCanvas.style.display = 'none';
   pauseBtn.style.display = 'none'; // Pause-Button ausblenden
+  abortBtn.style.display = 'none'; 
   endScreen.style.display = 'block';
 
   // Events entfernen
@@ -765,6 +840,8 @@ function endGame(playerWon, customMessage = null) {
 }
 // Initial den ausgewählten Spielmodus setzen
 setGameMode(gameMode);
+// Gespeicherte Einstellungen laden
+loadGameSettings();
 // Zu Ereignis-Listenern hinzufügen
 standardModeBtn.addEventListener('click', () => {
   setGameMode("standard");
