@@ -358,3 +358,44 @@ body {
   border: none;
   margin-right: 10px;
 }
+/* Bessere mobile Unterstützung */
+#menu {
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+ 
+}
+
+.settings-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 220px;
+}
+
+.setting-item {
+  flex: 1;
+}
+
+.action-button {
+  margin-top: 15px !important;
+  padding: 12px 24px !important;
+  font-size: 1.2rem !important;
+  background-color: #16a085 !important;
+}
+
+@media (max-width: 480px) {
+  #menu {
+    padding: 20px;
+    width: 85%;
+  }
+  
+  .settings-row {
+    flex-direction: column;
+  }
+  
+  #menu h1 {
+    font-size: 1.6rem;
+    margin-bottom: 15px;
+  }
+}

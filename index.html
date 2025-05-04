@@ -18,19 +18,25 @@
   <!-- Einstellungs-Menü -->
   <div id="menu">
     <h1>Ping Pong</h1>
-    <!-- Seitenwahl, Schwierigkeitsgrad, usw. wie gehabt -->
-    <label for="sideChoice">Seite wählen:</label>
-    <select id="sideChoice">
-      <option value="left" selected>Links</option>
-      <option value="right">Rechts</option>
-    </select>
-
-    <label for="difficulty">Schwierigkeitsgrad:</label>
-    <select id="difficulty">
-      <option value="easy">Einfach</option>
-      <option value="medium" selected>Mittel</option>
-      <option value="hard">Schwer</option>
-    </select>
+    
+    <div class="settings-row">
+      <div class="setting-item">
+        <label for="sideChoice">Seite:</label>
+        <select id="sideChoice">
+          <option value="left" selected>Links</option>
+          <option value="right">Rechts</option>
+        </select>
+      </div>
+      
+      <div class="setting-item">
+        <label for="difficulty">Schwierigkeit:</label>
+        <select id="difficulty">
+          <option value="easy">Einfach</option>
+          <option value="medium" selected>Mittel</option>
+          <option value="hard">Schwer</option>
+        </select>
+      </div>
+    </div>
 
     <label for="maxPoints">Punktegrenze (0 = Endlos):</label>
     <input type="number" id="maxPoints" value="10" min="0" />
@@ -41,8 +47,8 @@
         <button id="standardMode" class="mode-btn active">Standard</button>
         <button id="survivalMode" class="mode-btn">Survival</button>
       </div>
-
     </div>
+    
     <div class="sound-wrapper">
       <span>Sound</span>
       <label class="checkbox-container">
@@ -55,9 +61,9 @@
       </label>
     </div>
 
-    <button id="startBtn">Spiel starten</button>
+    <button id="startBtn" class="action-button">Spiel starten</button>
     <div id="highscoreDisplay">
-      Survival Highscore: <span id="highscoreValue">0</span>
+      Highscore: <span id="highscoreValue">0</span>
     </div>
     <div id="highscoreDescription"></div>
   </div>
@@ -65,8 +71,10 @@
   <!-- Canvas + Pause-Container -->
   <div id="canvasContainer">
     <canvas id="gameCanvas" width="800" height="500"></canvas>
-    <button id="pauseBtn" style="display: none;">⏸ Pause</button>
-    <button id="abortBtn" style="display: none;">⏹ Cancel</button>
+    <div class="control-buttons">
+      <button id="pauseBtn" style="display: none;">⏸ Pause</button>
+      <button id="abortBtn" style="display: none;">⏹ Cancel</button>
+    </div>
   </div>
 
   <!-- End-Bildschirm -->
