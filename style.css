@@ -142,17 +142,7 @@ body {
 }
 
 /* Pause-Button-Stil */
-#pauseBtn {
-  margin-top: 10px; /* Abstand nach oben */
-  padding: 8px 16px;
-  font-size: 16px;
-  background-color: #555;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 0 8px rgba(0,0,0,0.4);
-}
+
 
 #pauseBtn:hover {
   background-color: #777;
@@ -333,30 +323,24 @@ body {
   justify-content: center;
   margin-top: 10px;
 }
-#pauseBtn, #abortBtn{
-  
-    padding: 8px 16px;
-    font-size: 16px;
-    background-color: #555;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    box-shadow: 0 0 8px rgba(0,0,0,0.4);
-    transition: background-color 0.3s ease;
-  }
 
-#pauseBtn:hover, #abortBtn:hover {
-  background-color: #444;
-}
+
 #pauseBtn, #abortBtn {
   padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #333;
-  color: white;
+  font-size: 16px;
+  background-color: #555;
+  color: #fff;
   border: none;
-  margin-right: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  transition: background-color 0.3s ease;
+  height: auto; /* Wichtig für gleiche Höhe */
+  line-height: normal; /* Verhindert unterschiedliche Höhen durch Zeilenabstand */
+}
+
+#pauseBtn:hover, #abortBtn:hover {
+  background-color: #777;
 }
 /* Bessere mobile Unterstützung */
 #menu {
